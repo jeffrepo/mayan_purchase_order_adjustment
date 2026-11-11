@@ -1,0 +1,55 @@
+name: Odoo 18 tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  odoo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: odoo:18.0
+      options: --user root
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+        options: >-
+          --health-cmd "pg_isready -U odoo -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install addon and run integration tests
+        shell: bash
+        run: |
+          set -o pipefail
+          odoo --db_host=db --db_port=5432 --db_user=odoo --db_password=odoo \
+            --database=mayan_purchase_test \
+            --addons-path="/usr/lib/python3/dist-packages/odoo/addons,$(dirname "$GITHUB_WORKSPACE")" \
+            --data-dir=/tmp/mayan-odoo-data \
+            --init=mayan_purchase_order_adjustment --without-demo=all \
+            --test-enable --test-tags=/mayan_purchase_order_adjustment \
+            --stop-after-init --no-http 2>&1 | tee /tmp/mayan-odoo-tests.log
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          log = Path('/tmp/mayan-odoo-tests.log').read_text()
+          assert re.search(r'0 failed, 0 error\(s\) of [1-9]\d* tests', log), 'Missing successful Odoo test summary'
+          PY
+      - name: Preserve Odoo test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo-test-log
+          path: /tmp/mayan-odoo-tests.log
