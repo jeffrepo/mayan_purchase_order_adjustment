@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="purchase_order_form_mayan_adjustment" model="ir.ui.view">
+        <field name="name">purchase.order.form.mayan.adjustment</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="mayan_has_receipts" invisible="1"/>
+                <button name="action_mayan_adjust_pending" type="object"
+                        string="Ajustar pendientes" groups="purchase.group_purchase_user"
+                        invisible="state not in ('purchase', 'done') or not mayan_has_receipts"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/control/create[@name='add_product_control']" position="attributes">
+                <attribute name="invisible">parent.mayan_has_receipts</attribute>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/control/button[@name='action_add_from_catalog']" position="attributes">
+                <attribute name="invisible">parent.mayan_has_receipts</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
