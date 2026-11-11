@@ -150,7 +150,7 @@ class TestPurchaseOrderAdjustment(AccountTestInvoicingCommon):
     def test_notes_and_draft_orders_still_work(self):
         order = self._order()
         note = self.env["purchase.order.line"].create({
-            "order_id": order.id, "display_type": "line_note", "name": "Nota de compra",
+            "order_id": order.id, "display_type": "line_note", "name": "Nota de compra", "product_qty": 0,
         })
         note.unlink()
         draft = order.copy()

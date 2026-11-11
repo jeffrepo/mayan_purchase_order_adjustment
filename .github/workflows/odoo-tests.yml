@@ -2,7 +2,7 @@ name: Odoo 18 tests
 
 on:
   push:
-    branches: [master, "codex/**"]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
@@ -24,7 +24,7 @@ jobs:
           POSTGRES_USER: odoo
           POSTGRES_PASSWORD: odoo
         options: >-
-          --health-cmd "pg_isready -U odoo"
+          --health-cmd "pg_isready -U odoo -d postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
