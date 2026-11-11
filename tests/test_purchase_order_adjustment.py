@@ -343,3 +343,22 @@ class TestPurchaseOrderAdjustment(AccountTestInvoicingCommon):
         line._create_or_update_picking()
         self.assertFalse(self._active(line))
         self.assertEqual(line.product_qty, 50)
+
+    def test_historical_route_blocked_after_backorder_cancellation(self):
+        order = self._order()
+        line = order.order_line[0]
+        receipt_move = line.move_ids.filtered(lambda move: move.state == "done")
+        downstream = self.env["stock.move"].create({
+            "name": "Traslado de recepción parcial", "product_id": line.product_id.id,
+            "product_uom": receipt_move.product_uom.id, "product_uom_qty": 100,
+            "location_id": receipt_move.location_dest_id.id,
+            "location_dest_id": self.env.ref("stock.stock_location_customers").id,
+            "move_orig_ids": [Command.link(receipt_move.id)],
+        })
+        self._active(line)._action_cancel()
+        with self.assertRaises(UserError):
+            self._wizard(order, line).action_apply()
+        self.assertEqual(line.product_qty, 100)
+        self.assertFalse(self._active(line))
+        self.assertEqual(downstream.product_uom_qty, 100)
+        self.assertEqual(receipt_move.quantity, 50)

@@ -37,6 +37,13 @@ class PurchaseOrderLine(models.Model):
             raise UserError(_("La cantidad facturada supera la recibida. Corrija la facturación antes de cerrar el pendiente."))
 
         pending = self._mayan_pending_moves()
+        # Historical links also affect purchase_stock's demand calculation even
+        # when the supplier's backorder has already been cancelled.
+        routed_history = self.move_ids.filtered(
+            lambda move: move.product_id != self.product_id
+            or move.move_orig_ids
+            or move.move_dest_ids
+        )
         if any(
             move.product_id != self.product_id
             or move.location_id.usage != "supplier"
@@ -45,7 +52,7 @@ class PurchaseOrderLine(models.Model):
             or move.move_orig_ids
             or move.move_dest_ids
             for move in pending
-        ) or self.move_dest_ids:
+        ) or self.move_dest_ids or routed_history:
             raise UserError(_(
                 "Este ajuste requiere una recepción directa del proveedor al inventario. "
                 "Revise por separado las devoluciones, kits, entregas directas y rutas encadenadas."
