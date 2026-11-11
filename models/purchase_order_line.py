@@ -41,8 +41,14 @@ class PurchaseOrderLine(models.Model):
         # when the supplier's backorder has already been cancelled.
         routed_history = self.move_ids.filtered(
             lambda move: move.product_id != self.product_id
-            or move.move_orig_ids
-            or move.move_dest_ids
+            or any(
+                not (move.state == "done" and origin == move.origin_returned_move_id)
+                for origin in move.move_orig_ids
+            )
+            or any(
+                not (destination.state == "done" and destination.origin_returned_move_id == move)
+                for destination in move.move_dest_ids
+            )
         )
         if any(
             move.product_id != self.product_id
